@@ -38,7 +38,7 @@ function App() {
       const data = await response.json();
       setResult(data);
     } catch (err) {
-      console.error(err);
+      console.error("Analysis error:", err);
       setError(
         "Unable to connect to ScamShield AI. Please try again in a moment."
       );
@@ -49,20 +49,19 @@ function App() {
 
   const getRiskScore = () => {
     if (!result) return 87;
-    return result.ai_analysis?.score ?? result.score;
+    return result.ai_analysis?.score ?? result.score ?? 0;
   };
 
   const getRiskLevel = () => {
     if (!result) return "HIGH";
-    return result.ai_analysis?.level ?? result.level;
+    return result.ai_analysis?.level ?? result.level ?? "LOW";
   };
 
-  const riskLevel = getRiskLevel();
   const riskScore = getRiskScore();
+  const riskLevel = getRiskLevel();
 
   return (
-    <div>
-      {/* NAVBAR */}
+    <div className="app">
       <nav className="navbar">
         <div className="brand">
           <div className="shield">🛡️</div>
@@ -81,7 +80,6 @@ function App() {
       </nav>
 
       <main>
-        {/* HERO */}
         <section className="hero">
           <div className="hero-text">
             <div className="badge">AI-POWERED SECURITY</div>
@@ -101,11 +99,9 @@ function App() {
             </a>
           </div>
 
-          {/* LIVE RISK CARD */}
           <div className="hero-card">
             <div className="card-top">
               <span>LIVE ANALYSIS</span>
-
               <span className="status">● PROTECTED</span>
             </div>
 
@@ -152,7 +148,6 @@ function App() {
           </div>
         </section>
 
-        {/* ANALYZER */}
         <section id="analyzer" className="analyzer-section">
           <div className="section-heading">
             <div className="badge">MESSAGE ANALYZER</div>
@@ -184,21 +179,17 @@ function App() {
             </div>
           </div>
 
-          {/* ERROR */}
           {error && (
             <div className="result-card error-card">
               <div>
                 <span className="result-label">⚠ ANALYSIS ERROR</span>
-
                 <p>{error}</p>
               </div>
             </div>
           )}
 
-          {/* RESULT */}
           {result && (
             <div className="result-card">
-              {/* SCORE */}
               <div className="result-main">
                 <span className="result-label">AI RISK SCORE</span>
 
@@ -208,7 +199,6 @@ function App() {
                 </div>
               </div>
 
-              {/* LEVEL */}
               <div>
                 <span className="result-label">RISK LEVEL</span>
 
@@ -217,7 +207,6 @@ function App() {
                 </h2>
               </div>
 
-              {/* SIGNALS */}
               <div className="signals">
                 <span className="result-label">DETECTED SIGNALS</span>
 
@@ -232,7 +221,6 @@ function App() {
                 )}
               </div>
 
-              {/* AI ANALYSIS */}
               {result.ai_analysis && (
                 <div className="ai-analysis">
                   <span className="result-label">🤖 AI ANALYSIS</span>
@@ -251,7 +239,6 @@ function App() {
                 </div>
               )}
 
-              {/* RECOMMENDATION */}
               <div className="recommendation">
                 <span className="result-label">
                   🛡️ SAFETY RECOMMENDATION
@@ -265,7 +252,6 @@ function App() {
           )}
         </section>
 
-        {/* HOW IT WORKS */}
         <section id="how" className="how-section">
           <div className="section-heading">
             <div className="badge">HOW IT WORKS</div>
@@ -276,17 +262,13 @@ function App() {
           <div className="steps">
             <div className="step">
               <div>01</div>
-
               <h3>Submit</h3>
-
               <p>Paste the suspicious message you received.</p>
             </div>
 
             <div className="step">
               <div>02</div>
-
               <h3>Analyze</h3>
-
               <p>
                 ScamShield examines fraud indicators using rule-based
                 detection and AI.
@@ -295,9 +277,7 @@ function App() {
 
             <div className="step">
               <div>03</div>
-
               <h3>Understand</h3>
-
               <p>
                 See the risk score, warning signals and AI-generated
                 explanation.
@@ -306,9 +286,7 @@ function App() {
 
             <div className="step">
               <div>04</div>
-
               <h3>Protect</h3>
-
               <p>
                 Make safer decisions before clicking links or sharing
                 sensitive information.
@@ -318,11 +296,9 @@ function App() {
         </section>
       </main>
 
-      {/* FOOTER */}
       <footer id="about">
         <div>
           <strong>🛡️ ScamShield</strong>
-
           <p>AI-powered fraud awareness platform.</p>
         </div>
 
