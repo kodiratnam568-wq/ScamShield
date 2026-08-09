@@ -7,34 +7,29 @@ import os
 import re
 import json
 
-# Load environment variables
 load_dotenv()
 
-# Create FastAPI app
+# Groq
+api_key = os.getenv("GROQ_API_KEY")
+client = Groq(api_key=api_key) if api_key else None
+
+# FastAPI
 app = FastAPI(title="ScamShield API")
 
-# CORS - allow Vercel frontend to call Render backend
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# Initialize Groq client
-api_key = os.getenv("GROQ_API_KEY")
-
-client = Groq(api_key=api_key) if api_key else None
-
-
-# Request model
 class MessageRequest(BaseModel):
     message: str
 
 
-# Home endpoint
 @app.get("/")
 def home():
     return {
@@ -43,7 +38,6 @@ def home():
     }
 
 
-# Health endpoint
 @app.get("/health")
 def health():
     return {
@@ -51,18 +45,13 @@ def health():
     }
 
 
-# Analyze endpoint
 @app.post("/analyze")
 def analyze_message(data: MessageRequest):
 
     text = data.message.lower()
-
-    # ---------------------------------
-    # RULE-BASED DETECTION
-    # ---------------------------------
-
     signals = []
 
+    # Urgency
     urgency_words = [
         "urgent",
         "immediately",
@@ -75,6 +64,7 @@ def analyze_message(data: MessageRequest):
     if any(word in text for word in urgency_words):
         signals.append("Urgency detected")
 
+    # Financial
     financial_words = [
         "payment",
         "money",
@@ -90,6 +80,7 @@ def analyze_message(data: MessageRequest):
             "Financial information/request detected"
         )
 
+    # Credentials
     credential_words = [
         "otp",
         "password",
@@ -103,6 +94,7 @@ def analyze_message(data: MessageRequest):
             "Credential request detected"
         )
 
+    # Prize
     prize_words = [
         "winner",
         "won",
@@ -117,21 +109,19 @@ def analyze_message(data: MessageRequest):
             "Prize or reward claim detected"
         )
 
+    # Links
     if re.search(r"https?://|www\.", text):
         signals.append(
             "External link detected"
         )
 
-    # Calculate rule-based score
+    # Rule score
     rule_score = min(
         95,
         10 + len(signals) * 15
     )
 
-    # ---------------------------------
-    # DEFAULT AI RESULT
-    # ---------------------------------
-
+    # Default AI result
     ai_result = {
         "risk_score": rule_score,
         "risk_level": "LOW",
@@ -141,25 +131,14 @@ def analyze_message(data: MessageRequest):
         )
     }
 
-    # ---------------------------------
-    # GROQ AI ANALYSIS
-    # ---------------------------------
-
+    # Groq AI
     if client:
 
-        try:
-
-            prompt = f"""
+        prompt = f"""
 You are ScamShield, an AI fraud detection assistant.
 
-Analyze the following message for possible:
-
-- scams
-- phishing
-- fraud
-- credential theft
-- financial fraud
-- social engineering
+Analyze this message for scams, phishing, fraud,
+credential theft, financial fraud, or social engineering.
 
 Message:
 {data.message}
@@ -176,13 +155,15 @@ Use exactly this format:
 }}
 
 Rules:
-
-- risk_score must be between 0 and 100.
+- risk_score must be an integer from 0 to 100.
 - risk_level must be LOW, MEDIUM, or HIGH.
 - Do not invent facts.
-- Focus only on warning signs present in the message.
+- Keep the explanation short.
+- Keep the recommendation short.
+- Return JSON only.
 """
 
+        try:
             response = client.chat.completions.create(
                 model="llama-3.1-8b-instant",
                 messages=[
@@ -201,7 +182,6 @@ Rules:
                 .strip()
             )
 
-            # Remove markdown code fences
             ai_text = ai_text.replace(
                 "```json",
                 ""
@@ -217,16 +197,12 @@ Rules:
             ai_result = json.loads(ai_text)
 
         except Exception as e:
+            print("Groq AI Error:", str(e))
 
-            print(
-                "Groq AI Error:",
-                str(e)
-            )
+    else:
+        print("GROQ_API_KEY is not configured.")
 
-    # ---------------------------------
-    # COMBINE RULE + AI RESULTS
-    # ---------------------------------
-
+    # AI score
     try:
         ai_score = int(
             ai_result.get(
@@ -234,54 +210,43 @@ Rules:
                 rule_score
             )
         )
-    except Exception:
+    except (ValueError, TypeError):
         ai_score = rule_score
 
-    # Keep score between 0 and 100
     ai_score = max(
         0,
         min(100, ai_score)
     )
 
+    # Final score
     final_score = round(
         (rule_score + ai_score) / 2
     )
 
-    # Determine final risk level
+    # Final level
     if final_score >= 70:
         level = "HIGH"
-
     elif final_score >= 40:
         level = "MEDIUM"
-
     else:
         level = "LOW"
 
-    # ---------------------------------
-    # FINAL RESPONSE
-    # ---------------------------------
-
+    # Response
     return {
         "score": final_score,
-
         "level": level,
-
         "signals": signals,
-
         "ai_analysis": {
             "score": ai_score,
-
             "level": ai_result.get(
                 "risk_level",
                 level
             ),
-
             "explanation": ai_result.get(
                 "explanation",
                 "No AI explanation available."
             )
         },
-
         "recommendation": ai_result.get(
             "recommendation",
             "Be cautious and verify the sender independently."
